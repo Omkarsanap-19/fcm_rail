@@ -2,26 +2,26 @@ require("dotenv").config();
 const express = require("express");
 const { GoogleAuth } = require("google-auth-library");
 const axios = require("axios");
+const fs = require("fs");
 const path = require("path");
 
 const app = express();
 app.use(express.json());
 
-// Load environment variables
 const PORT = process.env.PORT || 3000;
 const PROJECT_ID = process.env.PROJECT_ID;
 const SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"];
 
-// Path to your service account JSON
-const SERVICE_ACCOUNT_PATH = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+// Create a temp file for credentials (Render doesn’t allow direct files)
+const tempPath = path.join(__dirname, "tempServiceAccount.json");
+fs.writeFileSync(tempPath, process.env.FIREBASE_CONFIG);
 
 // Auth setup
 const auth = new GoogleAuth({
-  keyFile: SERVICE_ACCOUNT_PATH,
+  keyFile: tempPath,
   scopes: SCOPES,
 });
 
-// Send notification route
 app.post("/sendNotification", async (req, res) => {
   const { token, title, message } = req.body;
 
@@ -37,9 +37,9 @@ app.post("/sendNotification", async (req, res) => {
 
     const notificationPayload = {
       message: {
-        token: token,
+        token,
         notification: {
-          title: title,
+          title,
           body: message,
         },
       },
@@ -59,7 +59,6 @@ app.post("/sendNotification", async (req, res) => {
   }
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
